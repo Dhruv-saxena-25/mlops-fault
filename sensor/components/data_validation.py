@@ -16,12 +16,17 @@ class DataValidation:
         try:
             self.data_ingestion_artifact= data_ingestion_artifact
             self.data_validation_config= data_validation_config
-            self._schema_config=  read_yaml_file(SCHEMA_FILE_PATH)  # protected variable (_ is used)
+            self._schema_config=  read_yaml_file(SCHEMA_FILE_PATH)  # protected variable (_ is used) 
         except Exception as e:
             raise SensorException(e, sys)
     
+    """
+    The @staticmethod decorator in Python defines a method that doesn't rely on the instance (object) of a class. 
+    This means it can be called on the class itself, without needing an instance of that class.
+    """
     @staticmethod
     def read_data(file_path)-> pd.DataFrame:
+
         try:
             return pd.read_csv(file_path)
         except Exception as e:

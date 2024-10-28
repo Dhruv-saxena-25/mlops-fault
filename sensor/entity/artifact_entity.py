@@ -1,5 +1,12 @@
 from dataclasses import dataclass
 
+
+"""
+The @dataclass decorator in Python is used to simplify the creation of classes that are primarily used to store data. 
+It automatically generates special methods like __init__, __repr__, __eq__, and others based on the class attributes 
+you define, which helps to make the code more concise and easier to read.
+"""
+
 @dataclass
 class DataIngestionArtifact:
     trained_file_path: str

@@ -17,8 +17,18 @@ from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
 )
+from dotenv import load_dotenv
+load_dotenv()
 
+import mlflow
+from mlflow.models import infer_signature
+from urllib.parse import urlparse
+import dagshub
+dagshub.init(repo_owner='Dhruv-saxena-25', repo_name='mlops-fault', mlflow=True)
 
+os.environ["MLFLOW_TRACKING_URI"]= os.getenv("MLFLOW_TRACKING_URI")
+os.environ["MLFLOW_TRACKING_USERNAME"]= os.getenv("MLFLOW_TRACKING_USERNAME")
+os.environ["MLFLOW_TRACKING_PASSWORD"]= os.getenv("MLFLOW_TRACKING_PASSWORD")
 
 class ModelTrainer:
     
@@ -29,12 +39,38 @@ class ModelTrainer:
             self.data_transformation_artifact = data_transformation_artifact
         except Exception as e:
             raise SensorException(e,sys)
-
         
-    def train_model(self, X_train, y_train):
+        
+    def track_mlflow(self, model, classificationmetric):
+        try: 
+            mlflow.set_registry_uri("https://dagshub.com/dhruva-25/sensor_fault.mlflow")
+            tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+            with mlflow.start_run():
+                f1_score=classificationmetric.f1_score
+                precision_score=classificationmetric.precision_score
+                recall_score=classificationmetric.recall_score
+                mlflow.log_metric("f1_score",f1_score)
+                mlflow.log_metric("precision",precision_score)
+                mlflow.log_metric("recall_score",recall_score)   
+                mlflow.sklearn.log_model(model,"model")
+                # # signature=infer_signature(X, y)
+                # # Model registry does not work with file store
+                # if tracking_url_type_store != "file":
+                #     # Register the model
+                #     # There are other ways to use the Model Registry, which depends on the use case,
+                #     # please refer to the doc for more information:
+                #     # https://mlflow.org/docs/latest/model-registry.html#api-workflow
+                #     mlflow.sklearn.log_model(model, "model", registered_model_name=model)
+                # else:
+                #     mlflow.sklearn.log_model(model, "model") 
+        except Exception as e:
+            raise SensorException(e,sys)
+
+    '''
+    def finetune_train_model(self, X_train, y_train):
         try:
             models = {
-                "Random Forest": RandomForestClassifier(),
+                "Random Forest": RandomForestClassifier(verbose=1),
                 #"Decision Tree": DecisionTreeClassifier(),
                 #"Gradient Boosting": GradientBoostingClassifier(verbose=1),
                 #"Logistic Regression": LogisticRegression(verbose=1),
@@ -86,6 +122,15 @@ class ModelTrainer:
             return model
         except Exception as e:
             raise SensorException(e,sys)
+    '''
+    
+    def train_model(self,x_train,y_train):
+        try:
+            xgb_clf = XGBClassifier()
+            xgb_clf.fit(x_train,y_train)
+            return xgb_clf
+        except Exception as e:
+            raise SensorException(e, sys)
         
         
     def initiate_model_trainer(self) -> ModelTrainerArtifact:
@@ -108,7 +153,9 @@ class ModelTrainer:
             model = self.train_model(x_train, y_train)
             y_train_pred = model.predict(x_train)
             classification_train_metric =  get_classification_score(y_true=y_train, y_pred=y_train_pred)
-        
+            
+            ## Track the experiements with mlflow
+            self.track_mlflow(model, classification_train_metric)
  
             if classification_train_metric.f1_score<= self.model_trainer_config.expected_accuracy:
                 raise Exception("Trained model is not good to provide expected accuracy")
@@ -117,7 +164,8 @@ class ModelTrainer:
             classification_test_metric = get_classification_score(y_true=y_test, y_pred=y_test_pred)
        
 
-
+            ## Track the experiements with mlflow
+            self.track_mlflow(model, classification_test_metric)
 
             #Overfitting and Underfitting
             diff = abs(classification_train_metric.f1_score-classification_test_metric.f1_score)

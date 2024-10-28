@@ -10,16 +10,6 @@ from sensor.ml.model.estimator import ModelResolver
 from sensor.constant.training_pipeline import TARGET_COLUMN
 from sensor.ml.model.estimator import TargetValueMapping
 import pandas  as  pd
-import mlflow
-from urllib.parse import urlparse
-import dagshub
-dagshub.init(repo_owner='Dhruv-saxena-25', repo_name='mlops-fault', mlflow=True)
-
-os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/Dhruv-saxena-25/mlops-fault.mlflow"
-os.environ["MLFLOW_TRACKING_USERNAME"]="Dhruv-saxena-25"
-os.environ["MLFLOW_TRACKING_PASSWORD"]="c89afa3d5cb46cd21a0333290065b3e3d17ac349"
-
-
 class ModelEvaluation:
 
 
@@ -33,32 +23,6 @@ class ModelEvaluation:
         except Exception as e:
             raise SensorException(e,sys)
     
-    def track_mlflow(self, model, classificationmetric):
-        try: 
-            
-            mlflow.set_registry_uri("https://dagshub.com/dhruva-25/sensor_fault.mlflow")
-            tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-            with mlflow.start_run():
-                f1_score=classificationmetric.f1_score
-                precision_score=classificationmetric.precision_score
-                recall_score=classificationmetric.recall_score
-                mlflow.log_metric("f1_score",f1_score)
-                mlflow.log_metric("precision",precision_score)
-                mlflow.log_metric("recall_score",recall_score)   #self.track_mlflow(train_model, trained_metric)
-                mlflow.sklearn.log_model(model,"model")
-                
-                
-                # Model registry does not work with file store
-                if tracking_url_type_store != "file":
-                    # Register the model
-                    # There are other ways to use the Model Registry, which depends on the use case,
-                    # please refer to the doc for more information:
-                    # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-                    mlflow.sklearn.log_model(model, "model", registered_model_name=model)
-                else:
-                    mlflow.sklearn.log_model(model, "model") 
-        except Exception as e:
-            raise SensorException(e,sys)
         
         
     def initiate_model_evaluation(self)->ModelEvaluationArtifact:
@@ -125,10 +89,6 @@ class ModelEvaluation:
             #save the report
             write_yaml_file(self.model_eval_config.report_file_path, model_eval_report)
             logging.info(f"Model evaluation artifact: {model_evaluation_artifact}")
-            
-            
-            ## Track the experiements with mlflow
-            self.track_mlflow(train_model, trained_metric)
             
             return model_evaluation_artifact
         except Exception as e:
