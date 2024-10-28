@@ -41,11 +41,12 @@ class ModelTrainer:
             raise SensorException(e,sys)
         
         
-    def track_mlflow(self, model, classificationmetric):
+    def track_mlflow(self, model, classificationmetric, label):
         try: 
             mlflow.set_registry_uri("https://dagshub.com/dhruva-25/sensor_fault.mlflow")
             tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
             with mlflow.start_run():
+                mlflow.set_tag("label", label)
                 f1_score=classificationmetric.f1_score
                 precision_score=classificationmetric.precision_score
                 recall_score=classificationmetric.recall_score
@@ -155,7 +156,7 @@ class ModelTrainer:
             classification_train_metric =  get_classification_score(y_true=y_train, y_pred=y_train_pred)
             
             ## Track the experiements with mlflow
-            self.track_mlflow(model, classification_train_metric)
+            self.track_mlflow(model, classification_train_metric, label= "Train")
  
             if classification_train_metric.f1_score<= self.model_trainer_config.expected_accuracy:
                 raise Exception("Trained model is not good to provide expected accuracy")
@@ -165,7 +166,7 @@ class ModelTrainer:
        
 
             ## Track the experiements with mlflow
-            self.track_mlflow(model, classification_test_metric)
+            self.track_mlflow(model, classification_test_metric, label ="Test")
 
             #Overfitting and Underfitting
             diff = abs(classification_train_metric.f1_score-classification_test_metric.f1_score)

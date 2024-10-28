@@ -45,7 +45,9 @@ class DataTransformation:
         except Exception as e:
             raise SensorException(e, sys)
 
-
+    """ The classmethod() function is used to define a method that is bound to the class and not the instance of the class. 
+        This means that it can be called on the class itself rather than on instances of the class. 
+    """
     @classmethod
     def get_data_transformer_object(cls)->Pipeline:
         try:

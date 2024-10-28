@@ -75,7 +75,7 @@ class DataValidation:
         try:
             numerical_columns= self._schema_config['numerical_columns']
             dataframe_columns= dataframe.columns
-            
+             
             numerical_columns_present= True
             missing_numerical_columns= []
             for num_column in numerical_columns:
